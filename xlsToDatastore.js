@@ -53,6 +53,7 @@ function getAllXls(filePath, callback){
 // TODO: Parar execução quando não encontrar a aba dos dados
 // TODO: Parar execução quando não conseguir definir a sentido da pista
 // TODO: Caminho completo no log no lugar do trecho apenas
+// TODO: Filtrar zeros excessivos e gravar num log para análise manual
 
 (function main () {
     if(!fs.existsSync(historyJsonPath)) {
@@ -134,7 +135,7 @@ function getAllXls(filePath, callback){
                         console.log(outputFilename);
                         // console.log(globalData);
                         makeDir(outputDir);
-                        var dataLog = `${dateReport.unix()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s\n`;
+                        var dataLog = `${dateReport.unix()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:${dataRow[9]} concessionaria:${globalData.dealership}\n`;
                         fs.appendFileSync(outputFilename, dataLog);
                         // console.log(`${dateReport.unix()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s\n`);
                     } else if(Object.keys(globalData).length > 0 && !table[row][1]) {
