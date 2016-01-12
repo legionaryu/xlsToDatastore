@@ -1,0 +1,27 @@
+{
+  "name": "xls-to-datastore",
+  "version": "1.0.0",
+  "description": "",
+  "main": "xlsToDatastore.js",
+  "dependencies": {
+    "adm-zip": "^0.4.7",
+    "csv": "^0.4.6",
+    "excel": "^0.1.4",
+    "node-xlsx": "^0.6.0",
+    "moment": "^2.11.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionaryu/xlsToDatastore.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/legionaryu/xlsToDatastore/issues"
+  },
+  "homepage": "https://github.com/legionaryu/xlsToDatastore#readme"
+}
