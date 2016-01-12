@@ -112,7 +112,11 @@ function getAllXls(filePath, callback){
                         // console.log(globalData);
                         // console.log("%d, 2, 9, LOG, %s, %d, %d, %d, %d, %d, %d, %s, %s, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s",
                         //             dateReport.unix(), filename, dataRow[3], dataRow[4], dataRow[5], dataRow[6], dataRow[7], dataRow[8], dataRow[9], dataRow[10], globalData.concessionaria);
-                        console.log(`${dateReport.unix()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s\n`);
+                        var outputDir = pathjs.join(outputDataPath, globalData.road, filename);
+                        makeDir(outputDir);
+                        var dataLog = `${dateReport.unix()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s\n`;
+                        fs.appendFileSync(pathjs.join(outputDir, dateReport.format("YYYYMMDD[.log]"), dataLog);
+                        //console.log(`${dateReport.unix()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s\n`);
                     } else if(Object.keys(globalData).length > 0 && !table[row][1]) {
                         // throw Error("just stop");
                         break;
@@ -183,7 +187,7 @@ function getAllXls(filePath, callback){
 function excelDateToDate(excelDate){
     //var result = new moment(Date.UTC(1899, 11, 30)); //to offset to Unix epoch and multiply by milliseconds
     var result = new moment("1899-12-31T00:00:00+03:00"); //to offset to Unix epoch and multiply by milliseconds
-    result.add({ days: excelDate});
+    result.add({ days: excelDate });
     // var localtime = nt.localtime( result.toDate().getTime() / 1000);
     // if ( localtime['isDaylightSavings'] == true) {
     //     result.subtract({ hours: 1 });
