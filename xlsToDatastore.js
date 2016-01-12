@@ -37,6 +37,7 @@ function getAllXls(filePath, callback){
             if(historyJson.filesRead.indexOf(filePath) < 0) {
                 historyJson.filesRead.push(filePath);
                 fs.writeFileSync(historyJsonPath, JSON.stringify(historyJson, null, " "));
+                if (typeof(callback) === 'function') callback(filePath);
             }
         }
     }
@@ -63,47 +64,107 @@ function getAllXls(filePath, callback){
 
     // makeDir(pathjs.join(outputDataPath, "SP-055","Leste"));
 
+    // ---------------- Input Folder Structure ------------------
+    // CONCESSIONARIA/
+    // |── ANO/
+    // |   |── MES/
+    // |   |   ├── TRECHO.(xls, xlsm, xlsx)
+    // ----------------------------------------------------------
+
+    // --------------- Output Folder Structure ------------------
+    // RODOVIA_CODIGO/
+    // |── TRECHO/
+    // |   |── SENTIDO/
+    // |   |   ├── YYYYMMDD.log
+    // ----------------------------------------------------------
+
+    getAllXls(xlsDataPath, function(filePath) {
+        var countAnalise = 1;
+        var filename = pathjs.basename(filePath);
+        filename = filename.substr(0, filename.length - pathjs.extname(filePath));
+        var obj = xlsx.parse(filePath);
+        Object.keys(obj).every(function (value){
+            var tabName = obj[value].name;
+            if (tabName.toUpperCase().indexOf("ANÁLISE") < 0 || tabName.indexOf("TH") < 0 ) {
+                return true;
+            }
+            else {
+                var globalData = {};
+                var table = obj[value].data;
+                for (var row = 0; row < table.length; row++) {
+                    if ((table[row][1]+"").toUpperCase() == "HORA" && 
+                        (table[row][2]+"").toUpperCase() == "DATA" && 
+                        (table[row][3]+"").toUpperCase() == "VOLUME LEVANTADO")
+                    {
+                        var relativePath = pathjs.relative(xlsDataPath, filePath);
+                        var relativeSplit = relativePath.split(pathjs.sep);
+                        globalData.road = filename;
+                        globalData.direction = table[row-12][2];
+                        globalData.dealership = relativeSplit[0];
+                        row += 1;
+                        continue;
+                    }
+                    else if(Object.keys(globalData).length > 0 && table[row][1]){
+                        var dataRow = table[row];
+                        var dateReport = excelDateToDate(dataRow[2]);
+                        // dateReport.setUTCHours(dateReport.getUTCHours()+(parseInt(dataRow[1])-1)%24);
+                        dateReport.add({hours:((parseInt(dataRow[1])-1)%24)});
+                        // console.log(globalData);
+                        // console.log("%d, 2, 9, LOG, %s, %d, %d, %d, %d, %d, %d, %s, %s, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s",
+                        //             dateReport.unix(), filename, dataRow[3], dataRow[4], dataRow[5], dataRow[6], dataRow[7], dataRow[8], dataRow[9], dataRow[10], globalData.concessionaria);
+                        console.log(`${dateReport.unix()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s\n`);
+                    } else if(Object.keys(globalData).length > 0 && !table[row][1]) {
+                        // throw Error("just stop");
+                        break;
+                    }
+                }
+                return countAnalise++ < 2;
+            }
+        });
+    });
+
     // console.log(excelDateToDate(40909).format("YYYYMMDD"));
     // console.log(excelDateToDate(40909).format("dddd, MMMM Do YYYY, h:mm:ss a"));
-    var countAnalise = 1;
-    var filename = "248-263";
-    var obj = xlsx.parse(pathjs.join(xlsDataPath, '248-263.xls'));
-    Object.keys(obj).every(function (value){
-        if (obj[value].name.indexOf("Análise") < 0) {
-            return true;
-        }
-        else {
-            var globalData = {};
-            var table = obj[value].data;
-            for (var row = 0; row < table.length; row++) {
-                if ((table[row][1]+"").toUpperCase() == "HORA" && 
-                    (table[row][2]+"").toUpperCase() == "DATA" && 
-                    (table[row][3]+"").toUpperCase() == "VOLUME LEVANTADO")
-                {
-                    var arrRoadDirection = table[row-12][2].split(' ');
-                    globalData.road = arrRoadDirection[0];
-                    globalData.direction = arrRoadDirection[1];
-                    globalData.dealership = "Ecovias";
-                    row += 1;
-                    continue;
-                }
-                else if(Object.keys(globalData).length > 0 && table[row][1]){
-                    var dataRow = table[row];
-                    var dateReport = excelDateToDate(dataRow[2]);
-                    // dateReport.setUTCHours(dateReport.getUTCHours()+(parseInt(dataRow[1])-1)%24);
-                    dateReport.add({hours:((parseInt(dataRow[1])-1)%24)});
-                    // console.log(globalData);
-                    // console.log("%d, 2, 9, LOG, %s, %d, %d, %d, %d, %d, %d, %s, %s, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s",
-                    //             dateReport.unix(), filename, dataRow[3], dataRow[4], dataRow[5], dataRow[6], dataRow[7], dataRow[8], dataRow[9], dataRow[10], globalData.concessionaria);
-                    console.log(`${dateReport.unix()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s`);
-                } else if(Object.keys(globalData).length > 0 && !table[row][1]) {
-                    // throw Error("just stop");
-                    break;
-                }
-            }
-            return countAnalise++ < 2;
-        }
-    });
+    // var countAnalise = 1;
+    // var filename = "248-263";
+    // var obj = xlsx.parse(pathjs.join(xlsDataPath, '248-263.xls'));
+    // Object.keys(obj).every(function (value){
+    //     if (obj[value].name.indexOf("Análise") < 0) {
+    //         return true;
+    //     }
+    //     else {
+    //         var globalData = {};
+    //         var table = obj[value].data;
+    //         for (var row = 0; row < table.length; row++) {
+    //             if ((table[row][1]+"").toUpperCase() == "HORA" && 
+    //                 (table[row][2]+"").toUpperCase() == "DATA" && 
+    //                 (table[row][3]+"").toUpperCase() == "VOLUME LEVANTADO")
+    //             {
+    //                 var arrRoadDirection = table[row-12][2].split(' ');
+    //                 globalData.road = arrRoadDirection[0];
+    //                 globalData.direction = arrRoadDirection[1];
+    //                 globalData.dealership = "Ecovias";
+    //                 row += 1;
+    //                 continue;
+    //             }
+    //             else if(Object.keys(globalData).length > 0 && table[row][1]){
+    //                 var dataRow = table[row];
+    //                 var dateReport = excelDateToDate(dataRow[2]);
+    //                 // dateReport.setUTCHours(dateReport.getUTCHours()+(parseInt(dataRow[1])-1)%24);
+    //                 dateReport.add({hours:((parseInt(dataRow[1])-1)%24)});
+    //                 // console.log(globalData);
+    //                 // console.log("%d, 2, 9, LOG, %s, %d, %d, %d, %d, %d, %d, %s, %s, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s",
+    //                 //             dateReport.unix(), filename, dataRow[3], dataRow[4], dataRow[5], dataRow[6], dataRow[7], dataRow[8], dataRow[9], dataRow[10], globalData.concessionaria);
+    //                 console.log(`${dateReport.unix()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s`);
+    //             } else if(Object.keys(globalData).length > 0 && !table[row][1]) {
+    //                 // throw Error("just stop");
+    //                 break;
+    //             }
+    //         }
+    //         return countAnalise++ < 2;
+    //     }
+    // });
+
     // console.log(keysFiltered);
     // console.log(typeof(obj[35].data));
     // console.log("is Array? %s", Array.isArray(obj[35].data));
