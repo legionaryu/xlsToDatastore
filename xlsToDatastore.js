@@ -137,6 +137,16 @@ function getAllXls(filePath, callback){
                         {
                             globalData.direction = "Sul";
                         }
+                        else if(tabName.toUpperCase().indexOf("INTERNA") >= 0 || 
+                           (table[row-12][2]+"").toUpperCase().indexOf("INTERNA") >= 0)
+                        {
+                            globalData.direction = "Interna";
+                        }
+                        else if(tabName.toUpperCase().indexOf("EXTERNA") >= 0 || 
+                           (table[row-12][2]+"").toUpperCase().indexOf("EXTERNA") >= 0)
+                        {
+                            globalData.direction = "Externa";
+                        }
                         else
                         {
                             throw Error("Couldn't find direction on the file " + filePath);
