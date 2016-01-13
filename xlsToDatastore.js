@@ -5,7 +5,8 @@ var xlsx = require('node-xlsx');
 var moment = require('moment-timezone');
 
 var outputDataPath = './historicoArtesp';
-var xlsDataPath = './xls';
+// var xlsDataPath = './xls';//'/servidor/Google IS/Materiais/ARTESP/DONE';
+var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE';
 var historyJsonPath = './historyJson.json';
 var warningFilesPath = './warningFiles.txt';
 var dataSpreadsheet;
@@ -144,7 +145,7 @@ function getAllXls(filePath, callback){
                         row += 1;
                         continue;
                     }
-                    else if(Object.keys(globalData).length > 0 && table[row][1]){
+                    else if(Object.keys(globalData).length > 0 && parseInt(table[row][1])){
                         var dataRow = table[row];
                         var dateReport = excelDateToDate(dataRow[2], ((parseInt(dataRow[1])-1)%24));
                         // console.log("zeros: %s | repeatedZeroCount: %d", (!dataRow[3] && !dataRow[4] && !dataRow[5]), repeatedZeroCount);
@@ -173,7 +174,7 @@ function getAllXls(filePath, callback){
                         console.log(outputFilename);
                         // console.log(globalData);
                         makeDir(outputDir);
-                        var dataLog = `${dateReport.unix()}, 2, 9, LOG, ${globalData.road} ${globalData.stretch} ${globalData.direction}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:${dataRow[9]} concessionaria:${globalData.dealership}\r\n`;
+                        var dataLog = `${dateReport.unix()}, 2, 7, LOG, ${globalData.road} ${globalData.stretch} ${globalData.direction}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${(dataRow[9]+"").toUpperCase().charCodeAt(0) - 64}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%d [A-E] concessionaria:${globalData.dealership}\r\n`;
                         fs.appendFileSync(outputFilename, dataLog);
                         // console.log(`${dateReport.unix()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s\n`);
                     } else if(Object.keys(globalData).length > 0 && !table[row][1]) {
@@ -261,8 +262,8 @@ function makeDir(str_path) {
         fs.mkdirSync(str_path);
     } catch(ex) {
         // console.log(JSON.stringify(ex));
-        if(ex.errno != -4075) {
-            if(ex.errno == -4058) {
+        if(ex.code != "EEXIST") {
+            if(ex.code == "ENOENT") {
                 var dirPathSplit = str_path.split(pathjs.sep);
                 var dirPath = "";
                 dirPathSplit.forEach(function (value) {
@@ -270,6 +271,7 @@ function makeDir(str_path) {
                     makeDir(dirPath);
                 });
             } else {
+                console.log(JSON.stringify(ex));
                 throw ex;
             }
         }
