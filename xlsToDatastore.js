@@ -8,8 +8,9 @@ var moment = require('moment-timezone');
 
 var outputDataPath = './historicoArtesp';
 // var xlsDataPath = './xls';//'/servidor/Google IS/Materiais/ARTESP/DONE';
-var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE';
+// var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE';
 // var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE/ECOPISTAS';
+var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE/ECOVIAS';
 // var xlsDataPath = "\\\\10.0.1.150\\servidor\\Google IS\\Materiais\\ARTESP\\DONE\\ECOPISTAS";
 var historyJsonPath = './historyJson.json';
 var warningFilesPath = './warningFiles.txt';
@@ -35,7 +36,8 @@ function getAllXls(filePath, callback){
         if(stat.isDirectory()){
             historyJson.dirRead = historyJson.dirRead || [];
             var pathSplit = filePath.split(pathjs.sep);
-            // if(pathSplit.length > 9 && pathjs.basename(filePath) != "SP17960") return;
+            // if(pathSplit.length > 9 && (pathjs.basename(filePath) != "SP160" || pathjs.basename(filePath) != "SP150")) return;
+            if(pathSplit.length > 9 && (pathjs.basename(filePath) != "SP160")) return;
             if(historyJson.dirRead.indexOf(filePath) < 0 && pathjs.basename(filePath)[0] != ".") {
                 historyJson.dirPath = filePath;
                 var allFiles = fs.readdirSync(filePath);
@@ -49,6 +51,7 @@ function getAllXls(filePath, callback){
             }
         } else if (stat.isFile()) {
             historyJson.filesRead = historyJson.filesRead || [];
+            if(pathjs.basename(filePath).indexOf("61-65") < 0 && pathjs.basename(filePath).indexOf("11-16") < 0) return;
             if(historyJson.filesRead.indexOf(filePath) < 0 && pathjs.basename(filePath)[0] != "." && pathjs.extname(filePath) != ".db") {
                 if (typeof(callback) === 'function') callback(filePath);
                 // historyJson.filesRead.push(filePath);
@@ -212,7 +215,11 @@ function getAllXls(filePath, callback){
                         // console.log(globalData);
                         makeDir(outputDir);
                         var roadClass = Math.max(Math.min((dataRow[9]+"").toUpperCase().charCodeAt(0) - 64, 7), 0) || 0;
-                        var dataLog = `${dateReport.valueOf()}, 2, 7, LOG, ${globalData.road} ${globalData.stretch} ${globalData.direction}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${roadClass}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%d [A-E] concessionaria:${globalData.dealership}\r\n`;
+                        var dataLog = `${dateReport.valueOf()}, 2, 7, LOG, ${globalData.road} ${globalData.stretch} ${globalData.direction},`;
+                        for(var k=3; k < 9; k++){
+                             dataLog += `${dataRow[k] || 0},`;
+                        }
+                        dataLog +=  `${roadClass}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%d [A-E] concessionaria:${globalData.dealership}\r\n`;
                         fs.appendFileSync(outputFilename, dataLog);
                         // console.log(`${dateReport.valueOf()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s\n`);
                     } else if(Object.keys(globalData).length > 0 && !table[row][1]) {
