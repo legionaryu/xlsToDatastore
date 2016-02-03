@@ -6,11 +6,28 @@ var moment = require('moment-timezone');
 
 var outputDataPath = './historicoArtesp';
 // var xlsDataPath = './xls';//'/servidor/Google IS/Materiais/ARTESP/DONE';
-var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE';
+// var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE';
+var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE/ECOPISTAS';
+// var xlsDataPath = "\\\\10.0.1.150\\servidor\\Google IS\\Materiais\\ARTESP\\DONE\\ECOPISTAS";
 var historyJsonPath = './historyJson.json';
 var warningFilesPath = './warningFiles.txt';
 var dataSpreadsheet;
 var historyJson;
+
+var months = [
+    "JANEIRO",
+    "FEVEREIRO",
+    "MARÇO",
+    "ABRIL",
+    "MAIO",
+    "JUNHO",
+    "JULHO",
+    "AGOSTO",
+    "SETEMBRO",
+    "OUTUBRO",
+    "NOVEMBRO",
+    "DEZENBRO"
+];
 
 Date.prototype.UTCyyyymmdd = function() {
     var yyyy = this.getUTCFullYear().toString();
@@ -24,29 +41,32 @@ function getAllXls(filePath, callback){
         var result = getAllXls(xlsDataPath, callback);
         return result;
     } else {
-        // console.log("filePath:", filePath);
+        console.log("filePath:", filePath);
         historyJson.path = filePath;
-        fs.writeFileSync(historyJsonPath, JSON.stringify(historyJson, null, " "));
+        // fs.writeFileSync(historyJsonPath, JSON.stringify(historyJson, null, " "));
         var stat = fs.statSync(filePath);
         if(stat.isDirectory()){
             historyJson.dirRead = historyJson.dirRead || [];
+            var pathSplit = filePath.split(pathjs.sep);
+            // if(pathSplit.length > 9 && pathjs.basename(filePath) != "SP17960") return;
+            if(pathSplit.length > 9 && pathjs.basename(filePath) != "SP17960") return;
             if(historyJson.dirRead.indexOf(filePath) < 0 && pathjs.basename(filePath)[0] != ".") {
                 historyJson.dirPath = filePath;
                 var allFiles = fs.readdirSync(filePath);
-                fs.writeFileSync(historyJsonPath, JSON.stringify(historyJson, null, " "));
+                // fs.writeFileSync(historyJsonPath, JSON.stringify(historyJson, null, " "));
                 allFiles.forEach(function(file){
                     result = getAllXls(pathjs.join(filePath, file), callback);
                 });
             } else {
                 historyJson.dirPath = pathjs.dirname(filePath);
-                fs.writeFileSync(historyJsonPath, JSON.stringify(historyJson, null, " "));
+                // fs.writeFileSync(historyJsonPath, JSON.stringify(historyJson, null, " "));
             }
         } else if (stat.isFile()) {
             historyJson.filesRead = historyJson.filesRead || [];
-            if(historyJson.filesRead.indexOf(filePath) < 0 && pathjs.basename(filePath)[0] != ".") {
+            if(historyJson.filesRead.indexOf(filePath) < 0 && pathjs.basename(filePath)[0] != "." && pathjs.extname(filePath) != ".db") {
                 if (typeof(callback) === 'function') callback(filePath);
-                historyJson.filesRead.push(filePath);
-                fs.writeFileSync(historyJsonPath, JSON.stringify(historyJson, null, " "));
+                // historyJson.filesRead.push(filePath);
+                // fs.writeFileSync(historyJsonPath, JSON.stringify(historyJson, null, " "));
             }
         }
     }
@@ -89,6 +109,7 @@ function getAllXls(filePath, callback){
     // ----------------------------------------------------------
 
     getAllXls(xlsDataPath, function(filePath) {
+    // getAllXls("/servidor/Google IS/Materiais/ARTESP/DONE/ECOPISTAS/2015/01-Janeiro/SP019/0-2.4.xlsm", function(filePath) {
         var countAnalise = 0;
         var filename = pathjs.basename(filePath);
         filename = filename.substr(0, filename.length - pathjs.extname(filePath).length);
@@ -115,9 +136,24 @@ function getAllXls(filePath, callback){
                     {
                         var relativePath = pathjs.relative(xlsDataPath, filePath);
                         var relativeSplit = relativePath.split(pathjs.sep);
-                        globalData.road = relativeSplit[relativeSplit.length - 2];
-                        globalData.stretch = filename;
-                        if(tabName.toUpperCase().indexOf("LESTE") >= 0 || 
+                        globalData.road = relativeSplit[relativeSplit.length - 2].replace(/\./g, '_');
+                        globalData.stretch = filename.replace(/\./g, '_');
+
+                        if(tabName.toUpperCase().indexOf("INTERNA") >= 0 || 
+                            tabName.toUpperCase().indexOf("INT") >= 0 || 
+                           (table[row-12][2]+"").toUpperCase().indexOf("INTERNA") >= 0 ||
+                           (table[row-11][2]+"").toUpperCase().indexOf("INTERNA") >= 0)
+                        {
+                            globalData.direction = "Interna";
+                        }
+                        else if(tabName.toUpperCase().indexOf("EXTERNA") >= 0 || 
+                            tabName.toUpperCase().indexOf("EXT") >= 0 || 
+                           (table[row-12][2]+"").toUpperCase().indexOf("EXTERNA") >= 0 || 
+                           (table[row-11][2]+"").toUpperCase().indexOf("EXTERNA") >= 0)
+                        {
+                            globalData.direction = "Externa";
+                        }
+                        else if(tabName.toUpperCase().indexOf("LESTE") >= 0 || 
                            (table[row-12][2]+"").toUpperCase().indexOf("LESTE") >= 0)
                         {
                             globalData.direction = "Leste";
@@ -137,16 +173,6 @@ function getAllXls(filePath, callback){
                         {
                             globalData.direction = "Sul";
                         }
-                        else if(tabName.toUpperCase().indexOf("INTERNA") >= 0 || 
-                           (table[row-12][2]+"").toUpperCase().indexOf("INTERNA") >= 0)
-                        {
-                            globalData.direction = "Interna";
-                        }
-                        else if(tabName.toUpperCase().indexOf("EXTERNA") >= 0 || 
-                           (table[row-12][2]+"").toUpperCase().indexOf("EXTERNA") >= 0)
-                        {
-                            globalData.direction = "Externa";
-                        }
                         else
                         {
                             throw Error("Couldn't find direction on the file " + filePath);
@@ -157,7 +183,18 @@ function getAllXls(filePath, callback){
                     }
                     else if(Object.keys(globalData).length > 0 && parseInt(table[row][1])){
                         var dataRow = table[row];
+                        if(dataRow[2] == '-' || !parseInt(dataRow[2])) {
+                            break;
+                        }
                         var dateReport = excelDateToDate(dataRow[2], ((parseInt(dataRow[1])-1)%24));
+                        if (dateReport.year() < 2000) {
+                            var pathSplit = filePath.split(pathjs.sep);
+                            dateReport = excelDateToDate("1/" + parseInt(pathSplit[8]) + "/" + pathSplit[7], (parseInt(dataRow[1])-1));
+                             if (dateReport.year() < 2000) {
+                                console.log(dataRow);
+                                throw Error("Invalid year on the file " + filePath + " | table:" + tabName + " row:" + row);
+                            }
+                        }
                         // console.log("zeros: %s | repeatedZeroCount: %d", (!dataRow[3] && !dataRow[4] && !dataRow[5]), repeatedZeroCount);
                         if (!dataRow[3] && !dataRow[4] && !dataRow[5]) {
                             if(repeatedZeroCount > 300) {
@@ -176,7 +213,7 @@ function getAllXls(filePath, callback){
                         // console.log(globalData);
                         // console.log("%d, 2, 9, LOG, %s, %d, %d, %d, %d, %d, %d, %s, %s, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s",
                         //             dateReport.unix(), filename, dataRow[3], dataRow[4], dataRow[5], dataRow[6], dataRow[7], dataRow[8], dataRow[9], globalData.concessionaria);
-                        var outputDir = pathjs.join(outputDataPath, globalData.road, filename, globalData.direction);
+                        /*var outputDir = pathjs.join(outputDataPath, globalData.road, filename, globalData.direction);
                         var outputFilename = pathjs.join(outputDir, dateReport.format("YYYYMMDD[.log]"));
                         if(logFilenameList.indexOf(outputFilename) < 0) {
                             logFilenameList.push(outputFilename);
@@ -184,9 +221,9 @@ function getAllXls(filePath, callback){
                         console.log(outputFilename);
                         // console.log(globalData);
                         makeDir(outputDir);
-                        var dataLog = `${dateReport.unix()}, 2, 7, LOG, ${globalData.road} ${globalData.stretch} ${globalData.direction}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${(dataRow[9]+"").toUpperCase().charCodeAt(0) - 64}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%d [A-E] concessionaria:${globalData.dealership}\r\n`;
-                        fs.appendFileSync(outputFilename, dataLog);
-                        // console.log(`${dateReport.unix()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s\n`);
+                        var dataLog = `${dateReport.valueOf()}, 2, 7, LOG, ${globalData.road} ${globalData.stretch} ${globalData.direction}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${(dataRow[9]+"").toUpperCase().charCodeAt(0) - 64}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%d [A-E] concessionaria:${globalData.dealership}\r\n`;
+                        fs.appendFileSync(outputFilename, dataLog);*/
+                        // console.log(`${dateReport.valueOf()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s\n`);
                     } else if(Object.keys(globalData).length > 0 && !table[row][1]) {
                         // throw Error("just stop");
                         break;
@@ -254,8 +291,14 @@ function getAllXls(filePath, callback){
 
 
 function excelDateToDate(excelDate, excelHour){
+    var reg = new RegExp('^[0-9]$'); //number only string
     var result = new moment("1899-12-31").tz('America/Sao_Paulo'); //to offset to Unix epoch and multiply by milliseconds
-    result.add({ days: excelDate});
+    if(typeof(excelDate) == "number" || reg.test(excelDate)) {
+        result.add({ days: excelDate});
+    }
+    else {
+        result = new moment(excelDate, "DD/MM/YYYY").tz('America/Sao_Paulo');
+    }
     result.hour(excelHour);
     result.minute(0);
     result.second(0);
