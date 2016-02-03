@@ -1,3 +1,5 @@
+// TODO: Check valid data using the folder month to compare with the date on the cell
+
 var fs = require("fs")
 var pathjs = require("path")
 var xlsx = require('node-xlsx');
@@ -6,28 +8,13 @@ var moment = require('moment-timezone');
 
 var outputDataPath = './historicoArtesp';
 // var xlsDataPath = './xls';//'/servidor/Google IS/Materiais/ARTESP/DONE';
-// var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE';
-var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE/ECOPISTAS';
+var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE';
+// var xlsDataPath = '/servidor/Google IS/Materiais/ARTESP/DONE/ECOPISTAS';
 // var xlsDataPath = "\\\\10.0.1.150\\servidor\\Google IS\\Materiais\\ARTESP\\DONE\\ECOPISTAS";
 var historyJsonPath = './historyJson.json';
 var warningFilesPath = './warningFiles.txt';
 var dataSpreadsheet;
 var historyJson;
-
-var months = [
-    "JANEIRO",
-    "FEVEREIRO",
-    "MARÇO",
-    "ABRIL",
-    "MAIO",
-    "JUNHO",
-    "JULHO",
-    "AGOSTO",
-    "SETEMBRO",
-    "OUTUBRO",
-    "NOVEMBRO",
-    "DEZENBRO"
-];
 
 Date.prototype.UTCyyyymmdd = function() {
     var yyyy = this.getUTCFullYear().toString();
@@ -49,7 +36,6 @@ function getAllXls(filePath, callback){
             historyJson.dirRead = historyJson.dirRead || [];
             var pathSplit = filePath.split(pathjs.sep);
             // if(pathSplit.length > 9 && pathjs.basename(filePath) != "SP17960") return;
-            if(pathSplit.length > 9 && pathjs.basename(filePath) != "SP17960") return;
             if(historyJson.dirRead.indexOf(filePath) < 0 && pathjs.basename(filePath)[0] != ".") {
                 historyJson.dirPath = filePath;
                 var allFiles = fs.readdirSync(filePath);
@@ -109,7 +95,7 @@ function getAllXls(filePath, callback){
     // ----------------------------------------------------------
 
     getAllXls(xlsDataPath, function(filePath) {
-    // getAllXls("/servidor/Google IS/Materiais/ARTESP/DONE/ECOPISTAS/2015/01-Janeiro/SP019/0-2.4.xlsm", function(filePath) {
+    // getAllXls("/servidor/Google IS/Materiais/ARTESP/DONE/ECOPISTAS/2013/09-Setembro/SP070/112-130-RAMPAS-3.xlsx", function(filePath) {
         var countAnalise = 0;
         var filename = pathjs.basename(filePath);
         filename = filename.substr(0, filename.length - pathjs.extname(filePath).length);
@@ -189,10 +175,14 @@ function getAllXls(filePath, callback){
                         var dateReport = excelDateToDate(dataRow[2], ((parseInt(dataRow[1])-1)%24));
                         if (dateReport.year() < 2000) {
                             var pathSplit = filePath.split(pathjs.sep);
-                            dateReport = excelDateToDate("1/" + parseInt(pathSplit[8]) + "/" + pathSplit[7], (parseInt(dataRow[1])-1));
+                            var month = parseInt(pathSplit[8]);
+                            dateReport = excelDateToDate("1/" + month + "/" + pathSplit[7], (parseInt(dataRow[1])-1));
                              if (dateReport.year() < 2000) {
                                 console.log(dataRow);
                                 throw Error("Invalid year on the file " + filePath + " | table:" + tabName + " row:" + row);
+                            }
+                            else if(dateReport.month()+1 != month) {
+                                break;
                             }
                         }
                         // console.log("zeros: %s | repeatedZeroCount: %d", (!dataRow[3] && !dataRow[4] && !dataRow[5]), repeatedZeroCount);
@@ -213,7 +203,7 @@ function getAllXls(filePath, callback){
                         // console.log(globalData);
                         // console.log("%d, 2, 9, LOG, %s, %d, %d, %d, %d, %d, %d, %s, %s, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s",
                         //             dateReport.unix(), filename, dataRow[3], dataRow[4], dataRow[5], dataRow[6], dataRow[7], dataRow[8], dataRow[9], globalData.concessionaria);
-                        /*var outputDir = pathjs.join(outputDataPath, globalData.road, filename, globalData.direction);
+                        var outputDir = pathjs.join(outputDataPath, globalData.road, globalData.stretch, globalData.direction);
                         var outputFilename = pathjs.join(outputDir, dateReport.format("YYYYMMDD[.log]"));
                         if(logFilenameList.indexOf(outputFilename) < 0) {
                             logFilenameList.push(outputFilename);
@@ -221,8 +211,9 @@ function getAllXls(filePath, callback){
                         console.log(outputFilename);
                         // console.log(globalData);
                         makeDir(outputDir);
-                        var dataLog = `${dateReport.valueOf()}, 2, 7, LOG, ${globalData.road} ${globalData.stretch} ${globalData.direction}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${(dataRow[9]+"").toUpperCase().charCodeAt(0) - 64}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%d [A-E] concessionaria:${globalData.dealership}\r\n`;
-                        fs.appendFileSync(outputFilename, dataLog);*/
+                        var roadClass = Math.max(Math.min((dataRow[9]+"").toUpperCase().charCodeAt(0) - 64, 7), 0) || 0;
+                        var dataLog = `${dateReport.valueOf()}, 2, 7, LOG, ${globalData.road} ${globalData.stretch} ${globalData.direction}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${roadClass}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%d [A-E] concessionaria:${globalData.dealership}\r\n`;
+                        fs.appendFileSync(outputFilename, dataLog);
                         // console.log(`${dateReport.valueOf()}, 2, 9, LOG, ${filename}, ${dataRow[3]}, ${dataRow[4]}, ${dataRow[5]}, ${dataRow[6]}, ${dataRow[7]}, ${dataRow[8]}, ${dataRow[9]}, ${globalData.dealership}, passeio:\%d comercial:\%d tx_fluxo:\%d vp:\%d velocidade:\%d densidade:\%f ns:\%s concessionaria:\%s\n`);
                     } else if(Object.keys(globalData).length > 0 && !table[row][1]) {
                         // throw Error("just stop");
